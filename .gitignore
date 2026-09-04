@@ -1,0 +1,15 @@
+# Never commit local credentials or raw backup material.
+*.json
+*.yaml
+*.yml
+*.conf
+*.plist
+*.log
+*.db
+*.sqlite*
+*.backup*
+.env*
+auth/
+credentials/
+backups/
+
