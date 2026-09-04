@@ -84,6 +84,28 @@ JSON 片段仅展示相关字段，不是完整凭据文件。
 
 直接请求代理只能证明网络链路，不能证明 Codex 已正确消费 Provider 和模型目录。
 
+## 手动检测脚本
+
+仓库提供了一个只读检测脚本。它不会切换节点、修改 TUN、编辑凭据或重启服务：
+
+```bash
+./scripts/check-yunniao-gemini.sh
+```
+
+默认检查当前云鸟节点、Google OAuth、Gemini API、下载速度、CLIProxyAPI 健康状态和 3.7 模型路由。
+
+需要真正通过 Codex 调用一次 Gemini 3.7 时运行：
+
+```bash
+./scripts/check-yunniao-gemini.sh --full
+```
+
+`--full` 会消耗少量模型额度。可以使用 `--bytes` 调整测速下载量：
+
+```bash
+./scripts/check-yunniao-gemini.sh --bytes 10000000
+```
+
 ## 出现 503 时如何排查
 
 按以下顺序检查：
@@ -112,4 +134,3 @@ JSON 片段仅展示相关字段，不是完整凭据文件。
 ## 核心教训
 
 代理可达性是认证系统的一部分。修改模型出口时，必须把“已有 GPT 会话继续工作”作为硬性验收条件，而不是只测试新增的 Gemini 路由。
-
