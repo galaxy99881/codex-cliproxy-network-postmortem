@@ -172,7 +172,7 @@ fi
 
 if [ "$FULL" -eq 1 ]; then
   heading "End-to-end Codex probe"
-  BRIDGE_TOOL="/Users/lizhixin/.agents/skills/codex-cli-model-bridge/scripts/bridge.py"
+  BRIDGE_TOOL="$HOME/.agents/skills/codex-cli-model-bridge/scripts/bridge.py"
   if [ -f "$BRIDGE_TOOL" ] && command -v python3 >/dev/null 2>&1; then
     if python3 "$BRIDGE_TOOL" probe --desktop --models "$MODEL"; then
       ok "Codex completed a real $MODEL request"

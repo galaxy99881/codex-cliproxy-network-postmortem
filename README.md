@@ -4,6 +4,48 @@
 
 > 本仓库不包含真实 OAuth 凭据、API Key、邮箱、节点地址、节点密码或原始配置备份。
 
+## 完整历程
+
+这次尝试的目标，是在不改变 Codex 原生 `openai` Provider 身份和历史记录归属的前提下，通过本地 CLIProxyAPI 把 Gemini 3.7 加入 Codex 模型目录。
+
+大致经历如下：
+
+1. 在本机运行 CLIProxyAPI，并增加一个仅监听回环地址的透明鉴权代理。
+2. Codex 保持 `model_provider = "openai"`，但临时将 Responses API 指向本地透明代理。
+3. CLIProxyAPI 同时载入 Codex OAuth 与 Antigravity/Gemini OAuth 凭据。
+4. 最初使用 CLIProxyAPI 的全局 `proxy-url`，导致 GPT 和 Gemini 共用同一个代理出口。
+5. 为降低相互影响，随后尝试账号级 `proxy_url`：GPT 走主代理端口，Gemini 走独立 Mihomo 端口。
+6. 测试发现部分节点能访问 Google OAuth 和 Gemini API 首页，但真实 Gemini 请求仍可能失败。
+7. Gemini 改回主代理端口后，对香港、英国和多个美国节点进行了真实 Responses 请求验证。
+8. 多个节点虽然 TLS、HTTP 和测速均正常，Google 仍返回 `User location is not supported for the API use.`。
+9. 同时，GPT/Codex 链路曾出现 TLS handshake EOF、`auth_unavailable`、503 和频繁重连。
+10. 最终判断：这套链路增加的进程、认证刷新、代理端口和节点变量过多，稳定性收益不足以覆盖维护成本，因此放弃并卸载 CLIProxyAPI。
+
+## 为什么“网络测试通过”仍不代表 Gemini 可用
+
+这次排查最容易误判的地方，是以下检查都可能成功：
+
+- Google OAuth 域名可以完成 TLS 握手；
+- Gemini API 域名返回 HTTP 响应；
+- 节点下载速度正常；
+- CLIProxyAPI 的 `/v1/models` 中存在目标模型；
+
+但真实模型请求依然可能因为出口 IP 的地理识别、OAuth 刷新、上游协议或账号策略而失败。只有通过 Codex 发起一次完整 Responses 请求并收到正常最终响应，才能认定该节点和路由真正可用。
+
+## 最终结局：卸载 CLIProxyAPI
+
+最终执行了完整卸载：
+
+- 卸载 Homebrew 安装的 CLIProxyAPI；
+- 停止并移除透明代理和 Gemini 辅助 Mihomo 的 LaunchAgent；
+- 释放本地 `8317`、`8318` 和 `17891` 端口；
+- 清理 CLIProxyAPI、模型桥和 Gemini 辅助代理的运行配置；
+- 清理 Homebrew 配置目录中的 CLIProxyAPI 配置及历史副本；
+- Codex 恢复使用官方 `openai` Provider，不再指向本地 `8318`；
+- 完整原始备份继续保存在本机，未提交到 GitHub。
+
+本仓库中的检测脚本作为故障排查参考保留。卸载 CLIProxyAPI 后，本地端口检查失败属于预期结果。
+
 ## 事故现象
 
 Codex 请求本地 Responses API 时返回：
@@ -134,3 +176,5 @@ JSON 片段仅展示相关字段，不是完整凭据文件。
 ## 核心教训
 
 代理可达性是认证系统的一部分。修改模型出口时，必须把“已有 GPT 会话继续工作”作为硬性验收条件，而不是只测试新增的 Gemini 路由。
+
+如果引入第三方模型必须让原生 GPT 请求也经过多个本地中间层，那么新增能力和整体稳定性应被放在同等优先级评估。能跑通一次不等于适合长期使用；无法做到故障隔离、自动回滚和端到端持续验证时，恢复官方直连往往是更稳妥的选择。
