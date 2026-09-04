@@ -148,6 +148,30 @@ JSON 片段仅展示相关字段，不是完整凭据文件。
 ./scripts/check-yunniao-gemini.sh --bytes 10000000
 ```
 
+批量检测云鸟全部真实节点：
+
+```bash
+./scripts/benchmark-yunniao-gemini.sh
+```
+
+脚本会逐个临时切换 `GLOBAL` 节点，记录节点类型、历史延迟、出口 IP/国家、Google OAuth、Gemini API TLS 和下载速度，最后自动恢复原节点。运行期间当前网络可能短暂中断。
+
+如果 EasyCLIProxyAPI 的 `8317` 正在被 Claude Code 使用，脚本默认拒绝执行，以免切换节点造成 Claude 会话断线。暂停 Claude Code 后再运行；确认可以接受中断时才使用 `--force`。
+
+如果 EasyCLIProxyAPI 桌面版正在 `127.0.0.1:8317` 提供目标模型，脚本会自动通过它已有的 OAuth 做真实 Responses 验证。客户端密钥只从桌面版本地配置读取到内存，不会打印或写入报告。
+
+没有桌面版路由时，也可以设置官方 Gemini API Key：
+
+```bash
+GEMINI_API_KEY='your-key' ./scripts/benchmark-yunniao-gemini.sh
+```
+
+密钥只作为进程环境变量使用，不会写入报告。桌面版路由和 API Key 都不可用时，结果统一标记为 `UNVERIFIED`，避免把“域名可以访问”误报为“Gemini 正常使用”。先测试三个节点可运行：
+
+```bash
+./scripts/benchmark-yunniao-gemini.sh --limit 3
+```
+
 ## 出现 503 时如何排查
 
 按以下顺序检查：
